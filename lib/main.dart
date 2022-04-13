@@ -31,9 +31,27 @@ class HomePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final dateTime = useStream(getTime());
+    final controller = useTextEditingController();
+    final text = useState('');
+    useEffect(() {
+      controller.addListener(() {
+        text.value = controller.text;
+      });
+      return null;
+    }, [controller]);
     return Scaffold(
-      appBar: AppBar(),
-      body: Center(child: Text(dateTime.data ?? 'This is home')),
+      appBar: AppBar(
+        title: Text(dateTime.data ?? 'This is home'),
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextFormField(
+            controller: controller,
+          ),
+          Text('Typing: ${text.value}')
+        ],
+      ),
     );
   }
 }
