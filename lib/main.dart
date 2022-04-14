@@ -88,55 +88,26 @@ class HomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = useReducer<State, Action?>(reducer,
-        initialState: const State.zero(), initialAction: null);
+    final state = useAppLifecycleState();
     return Scaffold(
       appBar: AppBar(
         title: const Text('This is home'),
       ),
-      body: Column(
-        children: [
-          Row(
-            children: [
-              TextButton(
-                onPressed: () {
-                  store.dispatch(Action.rotateLeft);
-                },
-                child: const Text('Rotate Left'),
-              ),
-              TextButton(
-                onPressed: () {
-                  store.dispatch(Action.rotateRight);
-                },
-                child: const Text('Rotate Right'),
-              ),
-              TextButton(
-                onPressed: () {
-                  store.dispatch(Action.moreVisible);
-                },
-                child: const Text('More Visible'),
-              ),
-              TextButton(
-                onPressed: () {
-                  store.dispatch(Action.lessVisible);
-                },
-                child: const Text('Less Visible'),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Opacity(
+          opacity: state == AppLifecycleState.resumed ? 1.0 : 0.0,
+          child: Container(
+            decoration: BoxDecoration(boxShadow: [
+              BoxShadow(
+                blurRadius: 10,
+                color: Colors.black.withAlpha(100),
+                spreadRadius: 10,
               )
-            ],
+            ]),
+            child: Image.asset('assets/card.png'),
           ),
-          const SizedBox(
-            height: 100,
-          ),
-          Opacity(
-            opacity: store.state.alpha,
-            child: RotationTransition(
-                turns: AlwaysStoppedAnimation(store.state.rotationDeg / 360.0),
-                child: Image.network(
-                  url,
-                  height: 400,
-                )),
-          ),
-        ],
+        ),
       ),
     );
   }
