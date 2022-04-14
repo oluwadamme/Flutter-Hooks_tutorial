@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -27,38 +28,69 @@ class MyApp extends StatelessWidget {
 // Stream<String> getTime() => Stream.periodic(
 //     const Duration(seconds: 1), (_) => DateTime.now().toIso8601String());
 
-// const url =
-//     'https://images.pexels.com/photos/2116388/pexels-photo-2116388.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=500';
+const url =
+    'https://images.pexels.com/photos/2116388/pexels-photo-2116388.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=500';
+const imageHeight = 300.0;
 
 class HomePage extends HookWidget {
   const HomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // final dateTime = useStream(getTime());
-    // final controller = useTextEditingController();
-    // final text = useState('');
-    // useEffect(() {
-    //   controller.addListener(() {
-    //     text.value = controller.text;
-    //   });
-    //   return null;
-    // }, [controller]);
+    final opacity = useAnimationController(
+        duration: const Duration(seconds: 1),
+        initialValue: 1.0,
+        lowerBound: 0.0,
+        upperBound: 1.0);
+    final size = useAnimationController(
+        duration: const Duration(seconds: 1),
+        initialValue: 1.0,
+        lowerBound: 0.0,
+        upperBound: 1.0);
 
-    // final future = useMemoized(() => NetworkAssetBundle(Uri.parse(url))
-    //     .load(url)
-    //     .then((data) => data.buffer.asUint8List())
-    //     .then((data) => Image.memory(data)));
+    final controller = useScrollController();
 
-    // final snapshot = useFuture(future);
-
-    final countDown = useMemoized(() => CountDown(from: 20));
-    final notifier = useListenable(countDown);
+    useEffect(() {
+      controller.addListener(() {
+        final newOpacity = max(imageHeight - controller.offset, 0.0);
+        final normalized = newOpacity.normalized(0.0, imageHeight).toDouble();
+        opacity.value = normalized;
+        size.value = normalized;
+      });
+      return null;
+    }, [controller]);
     return Scaffold(
       appBar: AppBar(
         title: const Text('This is home'),
       ),
-      body: Text(notifier.value.toString()),
+      body: Column(
+        children: [
+          SizeTransition(
+            sizeFactor: size,
+            axis: Axis.vertical,
+            axisAlignment: -1.0,
+            child: FadeTransition(
+              opacity: opacity,
+              child: Image.network(
+                url,
+                height: imageHeight,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: controller,
+              itemBuilder: ((context, index) {
+                return ListTile(
+                  title: Text('Person ${index + 1}'),
+                );
+              }),
+              itemCount: 100,
+            ),
+          )
+        ],
+      ),
     );
   }
 }
@@ -84,4 +116,16 @@ class CountDown extends ValueNotifier<int> {
     sub.cancel();
     super.dispose();
   }
+}
+
+extension Normalize on num {
+  num normalized(
+    num selfRangeMin,
+    num selfRangeMax, [
+    num normalizedRangeMin = 0.0,
+    num normalizedRangeMax = 1.0,
+  ]) =>
+      (normalizedRangeMax - normalizedRangeMin) *
+          ((this - selfRangeMin) / (selfRangeMax - selfRangeMin)) +
+      normalizedRangeMin;
 }
