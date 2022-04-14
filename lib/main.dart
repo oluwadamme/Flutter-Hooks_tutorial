@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -37,60 +36,83 @@ class HomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final opacity = useAnimationController(
-        duration: const Duration(seconds: 1),
-        initialValue: 1.0,
-        lowerBound: 0.0,
-        upperBound: 1.0);
-    final size = useAnimationController(
-        duration: const Duration(seconds: 1),
-        initialValue: 1.0,
-        lowerBound: 0.0,
-        upperBound: 1.0);
+    late final StreamController<double> controller;
 
-    final controller = useScrollController();
-
-    useEffect(() {
-      controller.addListener(() {
-        final newOpacity = max(imageHeight - controller.offset, 0.0);
-        final normalized = newOpacity.normalized(0.0, imageHeight).toDouble();
-        opacity.value = normalized;
-        size.value = normalized;
-      });
-      return null;
-    }, [controller]);
+    controller = useStreamController<double>(onListen: () {
+      controller.sink.add(0.0);
+    });
     return Scaffold(
       appBar: AppBar(
         title: const Text('This is home'),
       ),
-      body: Column(
-        children: [
-          SizeTransition(
-            sizeFactor: size,
-            axis: Axis.vertical,
-            axisAlignment: -1.0,
-            child: FadeTransition(
-              opacity: opacity,
-              child: Image.network(
-                url,
-                height: imageHeight,
-                fit: BoxFit.contain,
-              ),
+      body: StreamBuilder<double>(
+          stream: controller.stream,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const LinearProgressIndicator();
+            } else {
+              final rotation = snapshot.data ?? 0.0;
+              return GestureDetector(
+                onTap: () {
+                  controller.sink.add(rotation + 10.0);
+                },
+                child: RotationTransition(
+                  turns: AlwaysStoppedAnimation(rotation / 360),
+                  child: Center(
+                    child: Image.network(
+                      url,
+                      height: imageHeight,
+                    ),
+                  ),
+                ),
+              );
+            }
+          }),
+    );
+  }
+}
+
+class FadeAnimation extends StatelessWidget {
+  const FadeAnimation({
+    Key? key,
+    required this.size,
+    required this.opacity,
+    required this.controller,
+  }) : super(key: key);
+
+  final AnimationController size;
+  final AnimationController opacity;
+  final ScrollController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizeTransition(
+          sizeFactor: size,
+          axis: Axis.vertical,
+          axisAlignment: -1.0,
+          child: FadeTransition(
+            opacity: opacity,
+            child: Image.network(
+              url,
+              height: imageHeight,
+              fit: BoxFit.contain,
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              controller: controller,
-              itemBuilder: ((context, index) {
-                return ListTile(
-                  title: Text('Person ${index + 1}'),
-                );
-              }),
-              itemCount: 100,
-            ),
-          )
-        ],
-      ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            controller: controller,
+            itemBuilder: ((context, index) {
+              return ListTile(
+                title: Text('Person ${index + 1}'),
+              );
+            }),
+            itemCount: 100,
+          ),
+        )
+      ],
     );
   }
 }
